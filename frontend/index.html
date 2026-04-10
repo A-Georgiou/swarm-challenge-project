@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskBoard - Collaborative Task Management</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+  <!-- ===================== Authentication Section ===================== -->
+  <section id="auth-section" class="auth-section">
+    <div class="auth-container">
+      <h1 class="auth-logo">TaskBoard</h1>
+      <p class="auth-tagline">Collaborative Task Management</p>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form">
+        <h2>Login</h2>
+
+        <div class="form-group">
+          <label for="login-email">Username or Email</label>
+          <input type="text" id="login-email" name="email" placeholder="you@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Login</button>
+
+        <p class="auth-switch">
+          Don't have an account?
+          <a href="#" id="show-register-link" class="auth-link">Register</a>
+        </p>
+      </form>
+
+      <!-- Register Form (hidden by default) -->
+      <form id="register-form" class="auth-form" style="display: none;">
+        <h2>Register</h2>
+
+        <div class="form-group">
+          <label for="register-username">Username</label>
+          <input type="text" id="register-username" name="username" placeholder="Choose a username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="register-email">Email</label>
+          <input type="email" id="register-email" name="email" placeholder="you@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="register-password">Password</label>
+          <input type="password" id="register-password" name="password" placeholder="Create a password" required>
+        </div>
+
+        <div class="form-group">
+          <label for="register-confirm-password">Confirm Password</label>
+          <input type="password" id="register-confirm-password" name="confirmPassword" placeholder="Confirm your password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Register</button>
+
+        <p class="auth-switch">
+          Already have an account?
+          <a href="#" id="show-login-link" class="auth-link">Login</a>
+        </p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===================== Main App Section ===================== -->
+  <div id="app-section" class="app-layout" style="display: none;">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle sidebar menu">&#9776;</button>
+        <h1 class="app-title">TaskBoard</h1>
+      </div>
+
+      <div class="header-right">
+        <span class="user-name" id="user-display-name"></span>
+        <span class="role-badge" id="user-role"></span>
+        <button class="btn btn-sm" id="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h3>Projects</h3>
+        <button class="btn btn-sm" id="add-project-btn">Add Project</button>
+      </div>
+
+      <ul class="project-list" id="project-list">
+        <!-- Project items inserted by JS, e.g.:
+        <li class="project-item active" data-project-id="abc123">Project Name</li>
+        -->
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="board-header">
+        <h2 id="current-project-name">Select a Project</h2>
+        <button class="btn btn-primary" id="add-task-btn">Add Task</button>
+      </div>
+
+      <!-- Kanban Board -->
+      <div class="kanban-board" id="kanban-board">
+
+        <!-- Todo Column -->
+        <div class="kanban-column" data-status="todo">
+          <div class="column-header">
+            <h3>Todo</h3>
+            <span class="task-count" id="count-todo">0</span>
+          </div>
+          <div class="column-body" id="column-todo">
+            <!-- Task cards inserted here by JS -->
+          </div>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="kanban-column" data-status="in_progress">
+          <div class="column-header">
+            <h3>In Progress</h3>
+            <span class="task-count" id="count-in_progress">0</span>
+          </div>
+          <div class="column-body" id="column-in_progress">
+            <!-- Task cards inserted here by JS -->
+          </div>
+        </div>
+
+        <!-- Review Column -->
+        <div class="kanban-column" data-status="review">
+          <div class="column-header">
+            <h3>Review</h3>
+            <span class="task-count" id="count-review">0</span>
+          </div>
+          <div class="column-body" id="column-review">
+            <!-- Task cards inserted here by JS -->
+          </div>
+        </div>
+
+        <!-- Done Column -->
+        <div class="kanban-column" data-status="done">
+          <div class="column-header">
+            <h3>Done</h3>
+            <span class="task-count" id="count-done">0</span>
+          </div>
+          <div class="column-body" id="column-done">
+            <!-- Task cards inserted here by JS -->
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ===================== Task Detail Modal ===================== -->
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal-content">
+      <button class="modal-close" aria-label="Close modal">&times;</button>
+      <h2 class="modal-title">Task Details</h2>
+
+      <form id="task-form" class="modal-body">
+        <div class="form-group">
+          <label for="task-title">Title</label>
+          <input type="text" id="task-title" name="title" placeholder="Task title" required>
+        </div>
+
+        <div class="form-group">
+          <label for="task-description">Description</label>
+          <textarea id="task-description" name="description" rows="4" placeholder="Describe the task..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="task-status">Status</label>
+            <select id="task-status" name="status">
+              <option value="todo">Todo</option>
+              <option value="in_progress">In Progress</option>
+              <option value="review">Review</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="task-priority">Priority</label>
+            <select id="task-priority" name="priority">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="task-assignee">Assignee</label>
+            <select id="task-assignee" name="assignee">
+              <option value="">Unassigned</option>
+              <!-- Options populated by JS -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="task-due-date">Due Date</label>
+            <input type="date" id="task-due-date" name="dueDate">
+          </div>
+        </div>
+
+        <!-- Subtasks Section -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3>Subtasks</h3>
+            <button type="button" class="btn btn-sm" id="add-subtask-btn" aria-label="Add subtask">+ Add</button>
+          </div>
+          <div id="subtasks-container">
+            <!-- Subtask items inserted by JS -->
+          </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3>Comments</h3>
+          </div>
+          <div id="comments-container">
+            <!-- Comment items inserted by JS -->
+          </div>
+          <div class="comment-input">
+            <textarea id="comment-text" rows="2" placeholder="Write a comment..."></textarea>
+            <button type="button" class="btn btn-sm" id="add-comment-btn">Add Comment</button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary" id="save-task-btn">Save</button>
+          <button type="button" class="btn btn-danger" id="delete-task-btn">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== Add Project Modal ===================== -->
+  <div class="modal-overlay" id="project-modal">
+    <div class="modal-content">
+      <button class="modal-close" aria-label="Close modal">&times;</button>
+      <h2 class="modal-title">New Project</h2>
+
+      <form id="project-form" class="modal-body">
+        <div class="form-group">
+          <label for="project-name">Project Name</label>
+          <input type="text" id="project-name" name="name" placeholder="Enter project name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="project-description">Description</label>
+          <textarea id="project-description" name="description" rows="4" placeholder="Describe the project..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary" id="save-project-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== Toast / Notification Container ===================== -->
+  <div class="toast-container" id="toast-container">
+    <!-- Toast notifications inserted by JS -->
+  </div>
+
+  <!-- ===================== Scripts ===================== -->
+  <script src="/app.js"></script>
+</body>
+</html>

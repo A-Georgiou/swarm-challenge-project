@@ -2,13 +2,17 @@
 
 from contextlib import asynccontextmanager
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.db.database import Base, SessionLocal, engine
 from app.db.seed import seed_default_admin
 from app.models import Comment, Project, Subtask, Task, User  # noqa: F401
-from app.routers import auth, users
+from app.routers import auth, comments, projects, subtasks, tasks, users
 
 
 @asynccontextmanager
@@ -42,8 +46,24 @@ app.add_middleware(
 # Register routers
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(projects.router)
+app.include_router(tasks.router)
+app.include_router(subtasks.router)
+app.include_router(comments.router)
 
 
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+
+# Frontend static files
+FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
+
+
+@app.get("/")
+def serve_frontend():
+    return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+
+app.mount("/", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
