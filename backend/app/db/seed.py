@@ -1,13 +1,15 @@
 """Seed database with default data."""
 
+import os
+
 from sqlalchemy.orm import Session
 
 from app.auth.auth import get_password_hash
 from app.models.user import User
 
-DEFAULT_ADMIN_USERNAME = "admin"
-DEFAULT_ADMIN_EMAIL = "admin@taskboard.local"
-DEFAULT_ADMIN_PASSWORD = "admin123"
+DEFAULT_ADMIN_USERNAME = os.environ.get("DEFAULT_ADMIN_USERNAME", "admin")
+DEFAULT_ADMIN_EMAIL = os.environ.get("DEFAULT_ADMIN_EMAIL", "admin@taskboard.local")
+DEFAULT_ADMIN_PASSWORD = os.environ.get("DEFAULT_ADMIN_PASSWORD", "changeme")
 
 
 def seed_default_admin(db: Session) -> None:
