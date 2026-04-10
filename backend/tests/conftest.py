@@ -1,5 +1,6 @@
 """Shared test fixtures: in-memory DB, TestClient, users, tokens, helpers."""
 
+import os
 from datetime import timedelta
 
 import pytest
@@ -14,6 +15,8 @@ from app.auth.auth import create_access_token, get_password_hash
 from app.models.user import User
 from app.models.project import Project
 from app.models.task import Task
+
+TEST_USER_PASSWORD = os.environ.get("TEST_USER_PASSWORD", "TestPass1")
 
 # ---------------------------------------------------------------------------
 # Test database (shared in-memory SQLite with StaticPool)
@@ -71,7 +74,7 @@ def _make_user(db, username, email, role):
     user = User(
         username=username,
         email=email,
-        hashed_password=get_password_hash("Password1"),
+        hashed_password=get_password_hash(TEST_USER_PASSWORD),
         role=role,
     )
     db.add(user)

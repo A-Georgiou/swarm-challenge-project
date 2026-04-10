@@ -1,7 +1,7 @@
 """Tests for /api/auth endpoints: register, login, me."""
 
 import pytest
-from tests.conftest import auth_header, make_expired_token
+from tests.conftest import auth_header, make_expired_token, TEST_USER_PASSWORD
 
 
 class TestRegister:
@@ -9,7 +9,7 @@ class TestRegister:
         resp = client.post("/api/auth/register", json={
             "username": "newuser",
             "email": "new@test.com",
-            "password": "StrongP1",
+            "password": TEST_USER_PASSWORD,
             "role": "editor",
         })
         assert resp.status_code == 201
@@ -23,7 +23,7 @@ class TestRegister:
         resp = client.post("/api/auth/register", json={
             "username": "admin",
             "email": "other@test.com",
-            "password": "StrongP1",
+            "password": TEST_USER_PASSWORD,
         })
         assert resp.status_code == 400
         assert "Username already registered" in resp.json()["detail"]
@@ -32,7 +32,7 @@ class TestRegister:
         resp = client.post("/api/auth/register", json={
             "username": "unique",
             "email": "admin@test.com",
-            "password": "StrongP1",
+            "password": TEST_USER_PASSWORD,
         })
         assert resp.status_code == 400
         assert "Email already registered" in resp.json()["detail"]
@@ -41,7 +41,7 @@ class TestRegister:
         resp = client.post("/api/auth/register", json={
             "username": "weakpw",
             "email": "weak@test.com",
-            "password": "12345",  # < 6 chars
+            "password": "short",  # < 6 chars
         })
         assert resp.status_code == 422  # Pydantic validation error
 
@@ -50,7 +50,7 @@ class TestLogin:
     def test_login_success(self, client, admin_user):
         resp = client.post("/api/auth/login", json={
             "username": "admin",
-            "password": "Password1",
+            "password": TEST_USER_PASSWORD,
         })
         assert resp.status_code == 200
         data = resp.json()
@@ -60,7 +60,7 @@ class TestLogin:
     def test_login_wrong_password(self, client, admin_user):
         resp = client.post("/api/auth/login", json={
             "username": "admin",
-            "password": "wrongpassword",
+            "password": TEST_USER_PASSWORD + "wrong",
         })
         assert resp.status_code == 401
         assert "Incorrect username or password" in resp.json()["detail"]
@@ -68,7 +68,7 @@ class TestLogin:
     def test_login_nonexistent_user(self, client):
         resp = client.post("/api/auth/login", json={
             "username": "ghost",
-            "password": "whatever",
+            "password": TEST_USER_PASSWORD,
         })
         assert resp.status_code == 401
 
