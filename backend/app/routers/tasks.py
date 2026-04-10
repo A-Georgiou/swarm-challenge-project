@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi import status as http_status
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,7 @@ from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskPriority, TaskResponse, TaskStatus, TaskUpdate
+from app.websocket import notify_clients
 
 router = APIRouter(tags=["tasks"])
 
@@ -24,6 +25,7 @@ router = APIRouter(tags=["tasks"])
 def create_task(
     project_id: int,
     task_in: TaskCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_editor_or_admin),
 ):
@@ -44,6 +46,11 @@ def create_task(
     db.add(task)
     db.commit()
     db.refresh(task)
+    background_tasks.add_task(
+        notify_clients, project_id, "task_created",
+        {"id": task.id, "title": task.title, "status": task.status, "priority": task.priority,
+         "assignee_id": task.assignee_id, "project_id": task.project_id},
+    )
     return task
 
 
@@ -89,6 +96,7 @@ def get_task(
 def update_task(
     task_id: int,
     task_in: TaskUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_editor_or_admin),
 ):
@@ -112,12 +120,18 @@ def update_task(
 
     db.commit()
     db.refresh(task)
+    background_tasks.add_task(
+        notify_clients, task.project_id, "task_updated",
+        {"id": task.id, "title": task.title, "status": task.status, "priority": task.priority,
+         "assignee_id": task.assignee_id, "project_id": task.project_id},
+    )
     return task
 
 
 @router.delete("/api/tasks/{task_id}", status_code=http_status.HTTP_204_NO_CONTENT)
 def delete_task(
     task_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_editor_or_admin),
 ):
@@ -126,5 +140,8 @@ def delete_task(
     if not task:
         raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Task not found")
 
+    task_data = {"id": task.id, "project_id": task.project_id}
+    project_id = task.project_id
     db.delete(task)
     db.commit()
+    background_tasks.add_task(notify_clients, project_id, "task_deleted", task_data)

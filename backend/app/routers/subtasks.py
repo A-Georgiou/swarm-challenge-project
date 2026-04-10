@@ -1,6 +1,6 @@
 """Subtask CRUD router."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_editor_or_admin
@@ -9,6 +9,7 @@ from app.models.subtask import Subtask
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.subtask import SubtaskCreate, SubtaskResponse, SubtaskUpdate
+from app.websocket import notify_clients
 
 router = APIRouter(tags=["subtasks"])
 
@@ -21,6 +22,7 @@ router = APIRouter(tags=["subtasks"])
 def create_subtask(
     task_id: int,
     subtask_in: SubtaskCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_editor_or_admin),
 ):
@@ -37,6 +39,10 @@ def create_subtask(
     db.add(subtask)
     db.commit()
     db.refresh(subtask)
+    background_tasks.add_task(
+        notify_clients, task.project_id, "subtask_created",
+        {"id": subtask.id, "title": subtask.title, "completed": subtask.completed, "task_id": task_id},
+    )
     return subtask
 
 
@@ -58,6 +64,7 @@ def list_subtasks(
 def update_subtask(
     subtask_id: int,
     subtask_in: SubtaskUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_editor_or_admin),
 ):
@@ -72,12 +79,18 @@ def update_subtask(
 
     db.commit()
     db.refresh(subtask)
+    task = db.query(Task).filter(Task.id == subtask.task_id).first()
+    background_tasks.add_task(
+        notify_clients, task.project_id, "subtask_updated",
+        {"id": subtask.id, "title": subtask.title, "completed": subtask.completed, "task_id": subtask.task_id},
+    )
     return subtask
 
 
 @router.delete("/api/subtasks/{subtask_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_subtask(
     subtask_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_editor_or_admin),
 ):
@@ -86,5 +99,9 @@ def delete_subtask(
     if not subtask:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
+    subtask_data = {"id": subtask.id, "task_id": subtask.task_id}
+    task = db.query(Task).filter(Task.id == subtask.task_id).first()
+    project_id = task.project_id
     db.delete(subtask)
     db.commit()
+    background_tasks.add_task(notify_clients, project_id, "subtask_deleted", subtask_data)

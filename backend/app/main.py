@@ -13,6 +13,7 @@ from app.db.database import Base, SessionLocal, engine
 from app.db.seed import seed_default_admin
 from app.models import Comment, Project, Subtask, Task, User  # noqa: F401
 from app.routers import auth, comments, projects, subtasks, tasks, users
+from app.websocket import router as ws_router
 
 
 @asynccontextmanager
@@ -50,6 +51,7 @@ app.include_router(projects.router)
 app.include_router(tasks.router)
 app.include_router(subtasks.router)
 app.include_router(comments.router)
+app.include_router(ws_router)
 
 
 @app.get("/api/health")
